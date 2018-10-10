@@ -2,11 +2,15 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Drawing;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using System.Diagnostics;
 using System;
+using System.IO;
 
 
 namespace DancorSVG2PNG
@@ -31,16 +35,16 @@ namespace DancorSVG2PNG
             }
 
             // download file from URL
-            // sample URL: http://dancorinc.com/order/orders/110467_3933_320943.svg
-            var uniqueName = GenerateId() + ".svg";
+            var uniqueName = GenerateId() ;
+            
             log.Info("-----------------------");
-            log.Info(uniqueName);
+            log.Info(uniqueName + ".svg");
             log.Info($"{context.FunctionDirectory}");
             log.Info("-----------------------");
 
             using (var client = new WebClient())
             {
-                client.DownloadFile(svgURL, uniqueName );
+                client.DownloadFile(svgURL, uniqueName + ".svg" );
             }
 
 
@@ -51,12 +55,12 @@ namespace DancorSVG2PNG
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.FileName = "java.exe";
-                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + uniqueName;
+                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + uniqueName + ".svg";
                 proc.Start();
                 proc.WaitForExit();
                 if (proc.HasExited)
                     log.Info(proc.StandardOutput.ReadToEnd());
-                log.Info("java.exe -jar Batik\\batik-rasterizer.jar " + uniqueName);
+                log.Info("java.exe -jar Batik\\batik-rasterizer.jar " + uniqueName + ".svg");
                 log.Info("success!");
             }
             catch (Exception e)
@@ -65,12 +69,44 @@ namespace DancorSVG2PNG
                 log.Info(e.Message);
             }
 
+            try
+            {
+                // upload file to blob storage
+                string storageConnection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+                CloudStorageAccount cloudStorageAccount = CloudStorageAccount.Parse(storageConnection);
+                CloudBlobClient cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+                //create a container CloudBlobContainer 
+                CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference("svg2png");
+
+                log.Info(context.FunctionAppDirectory + "\\" + uniqueName + ".png");
+                ////get Blob reference
+                Image imageIn = Image.FromFile(context.FunctionAppDirectory + "\\" +  uniqueName + ".png");
+
+                byte[] arr;
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    arr = ms.ToArray();
+                }
+
+
+                CloudBlockBlob svgBlob = cloudBlobContainer.GetBlockBlobReference(uniqueName + ".png");
+                svgBlob.Properties.ContentType = "image/png";
+                svgBlob.UploadFromByteArray(arr, 0, arr.Length);
+
+                imageIn.Dispose();
+
+            }
+            catch (Exception e)
+            {
+                log.Info("Image Upload Fail");
+                log.Info(e.Message);
+            }
+
+
             return svgURL == null
-                ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
-                : req.CreateResponse(HttpStatusCode.OK, "Hello " + svgURL);
-
-
-            
+                ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a url on the query string or in the request body")
+                : req.CreateResponse(HttpStatusCode.OK, "Hello " + svgURL);   
         }
 
         private static string GenerateId()
