@@ -30,7 +30,6 @@ namespace DancorSVG2PNG
                 svgURL = data?.svgURL;
             }
 
-
             // download file from URL
             // sample URL: http://dancorinc.com/order/orders/110467_3933_320943.svg
             var uniqueName = GenerateId() + ".svg";
@@ -38,6 +37,10 @@ namespace DancorSVG2PNG
             log.Info(uniqueName);
             log.Info("-----------------------");
 
+            using (var client = new WebClient())
+            {
+                client.DownloadFile(svgURL, uniqueName );
+            }
 
 
             Process proc = new Process();
