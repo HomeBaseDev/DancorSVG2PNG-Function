@@ -14,7 +14,7 @@ namespace DancorSVG2PNG
     public static class DancorSVG2PNG
     {
         [FunctionName("DancorSVG2PNG")]
-        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log, ExecutionContext context)
         {
             log.Info("C# HTTP trigger function processed a request.");
 
@@ -35,6 +35,7 @@ namespace DancorSVG2PNG
             var uniqueName = GenerateId() + ".svg";
             log.Info("-----------------------");
             log.Info(uniqueName);
+            log.Info($"{context.FunctionDirectory}");
             log.Info("-----------------------");
 
             using (var client = new WebClient())
@@ -50,12 +51,12 @@ namespace DancorSVG2PNG
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.FileName = "java.exe";
-                proc.StartInfo.Arguments = "-jar C:\\SourceCode\\DancorSVG2PNG-Function\\SVG2PNGConsole\\Batik\\batik-rasterizer.jar C:\\SourceCode\\DancorSVG2PNG-Function\\SVG2PNGConsole\\Test.svg";
+                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + uniqueName;
                 proc.Start();
                 proc.WaitForExit();
                 if (proc.HasExited)
                     log.Info(proc.StandardOutput.ReadToEnd());
-                log.Info("java.exe -jar C:\\SourceCode\\DancorSVG2PNG-Function\\SVG2PNGConsole\\Batik\\batik-rasterizer.jar C:\\SourceCode\\DancorSVG2PNG-Function\\SVG2PNGConsole\\Test.svg");
+                log.Info("java.exe -jar Batik\\batik-rasterizer.jar " + uniqueName);
                 log.Info("success!");
             }
             catch (Exception e)
