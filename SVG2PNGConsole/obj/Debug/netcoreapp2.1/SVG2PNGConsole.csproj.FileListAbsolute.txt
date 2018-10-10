@@ -1,0 +1,11 @@
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\SVG2PNGConsole.deps.json
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\SVG2PNGConsole.runtimeconfig.json
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\SVG2PNGConsole.runtimeconfig.dev.json
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\SVG2PNGConsole.dll
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\SVG2PNGConsole.pdb
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.csprojAssemblyReference.cache
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.csproj.CoreCompileInputs.cache
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.AssemblyInfoInputs.cache
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.AssemblyInfo.cs
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.dll
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.pdb
