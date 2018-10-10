@@ -103,6 +103,15 @@ namespace DancorSVG2PNG
                 log.Info(e.Message);
             }
 
+            // clean up
+            if (File.Exists(context.FunctionAppDirectory + "\\" + uniqueName + ".png"))
+            {
+                File.Delete(context.FunctionAppDirectory + "\\" + uniqueName + ".png");
+            }
+            if (File.Exists(context.FunctionAppDirectory + "\\" + uniqueName + ".svg"))
+            {
+                File.Delete(context.FunctionAppDirectory + "\\" + uniqueName + ".svg");
+            }
 
             return svgURL == null
                 ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a url on the query string or in the request body")
