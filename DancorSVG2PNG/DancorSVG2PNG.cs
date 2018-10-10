@@ -19,16 +19,26 @@ namespace DancorSVG2PNG
             log.Info("C# HTTP trigger function processed a request.");
 
             // parse query parameter
-            string name = req.GetQueryNameValuePairs()
-                .FirstOrDefault(q => string.Compare(q.Key, "name", true) == 0)
+            string svgURL = req.GetQueryNameValuePairs()
+                .FirstOrDefault(q => string.Compare(q.Key, "l", true) == 0)
                 .Value;
 
-            if (name == null)
+            if (svgURL == null)
             {
                 // Get request body
                 dynamic data = await req.Content.ReadAsAsync<object>();
-                name = data?.name;
+                svgURL = data?.svgURL;
             }
+
+
+            // download file from URL
+            // sample URL: http://dancorinc.com/order/orders/110467_3933_320943.svg
+            var uniqueName = GenerateId() + ".svg";
+            log.Info("-----------------------");
+            log.Info(uniqueName);
+            log.Info("-----------------------");
+
+
 
             Process proc = new Process();
             try
@@ -51,12 +61,23 @@ namespace DancorSVG2PNG
                 log.Info(e.Message);
             }
 
-            return name == null
+            return svgURL == null
                 ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
-                : req.CreateResponse(HttpStatusCode.OK, "Hello " + name);
+                : req.CreateResponse(HttpStatusCode.OK, "Hello " + svgURL);
 
 
             
         }
+
+        private static string GenerateId()
+        {
+            long i = 1;
+            foreach (byte b in Guid.NewGuid().ToByteArray())
+            {
+                i *= ((int)b + 1);
+            }
+            return string.Format("{0:x}", i - DateTime.Now.Ticks);
+        }
+
     }
 }
