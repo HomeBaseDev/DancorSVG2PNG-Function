@@ -24,15 +24,6 @@ namespace DancorSVG2PNG
             log.Info("C# HTTP trigger function processed a request.");
 
 
-            foreach (string folder in Directory.GetDirectories(context.FunctionAppDirectory))
-            {
-                log.Info(folder);
-            }
-
-            foreach (string file in Directory.GetFiles(context.FunctionAppDirectory))
-            {
-                log.Info(file);
-            }
 
             // parse query parameter
             string svgURL = req.GetQueryNameValuePairs()
@@ -48,32 +39,32 @@ namespace DancorSVG2PNG
 
             // download file from URL
             var uniqueName = GenerateId() ;
+            Directory.CreateDirectory(Path.GetTempPath() + "\\" + uniqueName);
             try {
-                HttpWebRequest request =  (HttpWebRequest)HttpWebRequest.Create(svgURL);
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream s = response.GetResponseStream();
-                FileStream os = new FileStream(Path.GetTempPath() + "\\" + uniqueName + ".svg", FileMode.OpenOrCreate, FileAccess.Write);
-                byte[] buff = new byte[102400];
-                int c = 0;
-                while ((c = s.Read(buff, 0, 10400)) > 0)
+
+                foreach (string file in Directory.GetFiles(Path.GetTempPath() + uniqueName))
                 {
-                    os.Write(buff, 0, c);
-                    os.Flush();
+                    log.Info("File in Directory After Download:");
+                    log.Info(file);
                 }
-                os.Close();
-                s.Close();
 
-
-                //using (var client = new WebClient())
-                //{
-                //    client.DownloadFile(svgURL, uniqueName + ".svg" );
-                //}
+                using (var client = new WebClient())
+                {
+                    client.DownloadFile(svgURL, Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".svg");
+                }
+                foreach (string file in Directory.GetFiles(Path.GetTempPath() + uniqueName))
+                {
+                    log.Info("File in Directory After Download:");
+                    log.Info(file);
+                }
             }
             catch (Exception e)
             {
                 log.Info("Download Fail");
                 log.Info(e.Message);
             }
+            
+
 
             Process proc = new Process();
             try
@@ -81,17 +72,18 @@ namespace DancorSVG2PNG
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.FileName = "java.exe";
-                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + Path.GetTempPath() + "\\" + uniqueName + ".svg - d " + Path.GetTempPath();
+                proc.StartInfo.FileName = "D:\\Program Files (x86)\\Java\\jdk1.8.0_73\\bin\\java.exe";
+                proc.StartInfo.Arguments = "-jar " + context.FunctionAppDirectory + "\\Batik\\batik-rasterizer.jar -d " + Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".png " + Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".svg";
                 proc.Start();
                 proc.WaitForExit();
                 if (proc.HasExited)
                     log.Info(proc.StandardOutput.ReadToEnd());
-                log.Info("java.exe -jar Batik\\batik-rasterizer.jar " + Path.GetTempPath() + "\\" + uniqueName + ".svg");
-                log.Info("success!");
+
+                log.Info("Batik Success!");
             }
             catch (Exception e)
             {
+
                 log.Info("Batik Fail");
                 log.Info(e.Message);
             }
@@ -105,9 +97,9 @@ namespace DancorSVG2PNG
                 //create a container CloudBlobContainer 
                 CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference("svg2png");
 
-                log.Info(Path.GetTempPath() + "\\" + uniqueName + ".png");
+                log.Info(Path.GetTempPath() + uniqueName + ".png");
                 ////get Blob reference
-                Image imageIn = Image.FromFile(Path.GetTempPath() + "\\" +  uniqueName + ".png");
+                Image imageIn = Image.FromFile(Path.GetTempPath() + uniqueName + "\\" +  uniqueName + ".png");
 
                 byte[] arr;
                 using (MemoryStream ms = new MemoryStream())
@@ -117,11 +109,12 @@ namespace DancorSVG2PNG
                 }
 
 
-                CloudBlockBlob svgBlob = cloudBlobContainer.GetBlockBlobReference(uniqueName + ".png");
+                CloudBlockBlob svgBlob = cloudBlobContainer.GetBlockBlobReference(Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".png");
                 svgBlob.Properties.ContentType = "image/png";
                 svgBlob.UploadFromByteArray(arr, 0, arr.Length);
 
                 imageIn.Dispose();
+                log.Info("Image Upload Success!");
 
             }
             catch (Exception e)
@@ -131,14 +124,12 @@ namespace DancorSVG2PNG
             }
 
             // clean up
-            if (File.Exists(context.FunctionAppDirectory + "\\" + uniqueName + ".png"))
-            {
-                File.Delete(context.FunctionAppDirectory + "\\" + uniqueName + ".png");
-            }
-            if (File.Exists(context.FunctionAppDirectory + "\\" + uniqueName + ".svg"))
-            {
-                File.Delete(context.FunctionAppDirectory + "\\" + uniqueName + ".svg");
-            }
+            if (File.Exists(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".png"))
+                File.Delete(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".png");
+            if (File.Exists(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".svg"))
+                File.Delete(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".svg");
+            if (Directory.Exists(Path.GetTempPath() + "\\" + uniqueName))
+                Directory.Delete(Path.GetTempPath() + "\\" + uniqueName);
 
 
             return svgURL == null

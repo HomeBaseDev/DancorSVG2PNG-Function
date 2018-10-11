@@ -22,7 +22,6 @@ namespace SVG2PNGConsole
                 proc.WaitForExit();
                 if (proc.HasExited)
                     Console.WriteLine(proc.StandardOutput.ReadToEnd());
-                Console.WriteLine("java.exe -jar C:\\SourceCode\\DancorSVG2PNG-Function\\SVG2PNGConsole\\Batik\\batik-rasterizer.jar C:\\SourceCode\\DancorSVG2PNG-Function\\SVG2PNGConsole\\Test.svg");
                 Console.WriteLine("success!");
             }
             catch (Exception e)
@@ -30,7 +29,6 @@ namespace SVG2PNGConsole
                 Console.WriteLine("Batik Fail");
                 Console.WriteLine(e.Message);
             }
-            Console.WriteLine("Hello World!");
             Console.ReadKey(true);
         }
     }

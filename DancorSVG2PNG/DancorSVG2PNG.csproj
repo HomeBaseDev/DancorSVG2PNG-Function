@@ -113,6 +113,5 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Batik\" />
-    <Folder Include="Assets\" />
   </ItemGroup>
 </Project>

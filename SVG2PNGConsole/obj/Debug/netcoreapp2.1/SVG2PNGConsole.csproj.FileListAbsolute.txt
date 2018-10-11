@@ -9,3 +9,5 @@ C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2
 C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.AssemblyInfo.cs
 C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.dll
 C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\obj\Debug\netcoreapp2.1\SVG2PNGConsole.pdb
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\Test.png
+C:\SourceCode\DancorSVG2PNG-Function\SVG2PNGConsole\bin\Debug\netcoreapp2.1\Test.svg
