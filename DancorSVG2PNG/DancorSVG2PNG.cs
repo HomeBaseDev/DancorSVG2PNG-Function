@@ -33,10 +33,6 @@ namespace DancorSVG2PNG
             {
                 log.Info(file);
             }
-            foreach (string file in Directory.GetFiles(context.FunctionAppDirectory + "\\Assets"))
-            {
-                log.Info(file);
-            }
 
             // parse query parameter
             string svgURL = req.GetQueryNameValuePairs()
@@ -52,7 +48,6 @@ namespace DancorSVG2PNG
 
             // download file from URL
             var uniqueName = GenerateId() ;
-            uniqueName = "Test";
             try {
                 HttpWebRequest request =  (HttpWebRequest)HttpWebRequest.Create(svgURL);
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -87,7 +82,7 @@ namespace DancorSVG2PNG
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.FileName = "java.exe";
-                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + Path.GetTempPath() + "\\" + uniqueName + ".svg";
+                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + Path.GetTempPath() + "\\" + uniqueName + ".svg - d " + Path.GetTempPath();
                 proc.Start();
                 proc.WaitForExit();
                 if (proc.HasExited)
