@@ -17,7 +17,7 @@ namespace DancorSVG2PNG
 {
     public static class DancorSVG2PNG
     {
-        [FunctionName("MySVG2PNG")]
+        [FunctionName("DancorSVG2PNG")]
         public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, 
             TraceWriter log, ExecutionContext context)
         {
@@ -37,6 +37,7 @@ namespace DancorSVG2PNG
 
             // download file from URL
             var uniqueName = GenerateId() ;
+            uniqueName = "Test.svg";
             try {
                 HttpWebRequest request =  (HttpWebRequest)HttpWebRequest.Create(svgURL);
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -127,6 +128,16 @@ namespace DancorSVG2PNG
             if (File.Exists(context.FunctionAppDirectory + "\\" + uniqueName + ".svg"))
             {
                 File.Delete(context.FunctionAppDirectory + "\\" + uniqueName + ".svg");
+            }
+
+            foreach (string folder in Directory.GetDirectories(context.FunctionAppDirectory))
+            {
+                Console.WriteLine(folder);
+            }
+
+            foreach (string file in Directory.GetFiles(context.FunctionAppDirectory))
+            {
+                Console.WriteLine(file);
             }
 
             return svgURL == null
