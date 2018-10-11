@@ -23,6 +23,21 @@ namespace DancorSVG2PNG
         {
             log.Info("C# HTTP trigger function processed a request.");
 
+
+            foreach (string folder in Directory.GetDirectories(context.FunctionAppDirectory))
+            {
+                log.Info(folder);
+            }
+
+            foreach (string file in Directory.GetFiles(context.FunctionAppDirectory))
+            {
+                log.Info(file);
+            }
+            foreach (string file in Directory.GetFiles(context.FunctionAppDirectory + "\\Assets"))
+            {
+                log.Info(file);
+            }
+
             // parse query parameter
             string svgURL = req.GetQueryNameValuePairs()
                 .FirstOrDefault(q => string.Compare(q.Key, "l", true) == 0)
@@ -37,12 +52,12 @@ namespace DancorSVG2PNG
 
             // download file from URL
             var uniqueName = GenerateId() ;
-            uniqueName = "Test.svg";
+            uniqueName = "Test";
             try {
                 HttpWebRequest request =  (HttpWebRequest)HttpWebRequest.Create(svgURL);
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
                 Stream s = response.GetResponseStream();
-                FileStream os = new FileStream(uniqueName + ".svg", FileMode.OpenOrCreate, FileAccess.Write);
+                FileStream os = new FileStream(Path.GetTempPath() + "\\" + uniqueName + ".svg", FileMode.OpenOrCreate, FileAccess.Write);
                 byte[] buff = new byte[102400];
                 int c = 0;
                 while ((c = s.Read(buff, 0, 10400)) > 0)
@@ -72,12 +87,12 @@ namespace DancorSVG2PNG
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.FileName = "java.exe";
-                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + uniqueName + ".svg";
+                proc.StartInfo.Arguments = "-jar Batik\\batik-rasterizer.jar " + Path.GetTempPath() + "\\" + uniqueName + ".svg";
                 proc.Start();
                 proc.WaitForExit();
                 if (proc.HasExited)
                     log.Info(proc.StandardOutput.ReadToEnd());
-                log.Info("java.exe -jar Batik\\batik-rasterizer.jar " + uniqueName + ".svg");
+                log.Info("java.exe -jar Batik\\batik-rasterizer.jar " + Path.GetTempPath() + "\\" + uniqueName + ".svg");
                 log.Info("success!");
             }
             catch (Exception e)
@@ -95,9 +110,9 @@ namespace DancorSVG2PNG
                 //create a container CloudBlobContainer 
                 CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference("svg2png");
 
-                log.Info(context.FunctionAppDirectory + "\\" + uniqueName + ".png");
+                log.Info(Path.GetTempPath() + "\\" + uniqueName + ".png");
                 ////get Blob reference
-                Image imageIn = Image.FromFile(context.FunctionAppDirectory + "\\" +  uniqueName + ".png");
+                Image imageIn = Image.FromFile(Path.GetTempPath() + "\\" +  uniqueName + ".png");
 
                 byte[] arr;
                 using (MemoryStream ms = new MemoryStream())
@@ -130,15 +145,6 @@ namespace DancorSVG2PNG
                 File.Delete(context.FunctionAppDirectory + "\\" + uniqueName + ".svg");
             }
 
-            foreach (string folder in Directory.GetDirectories(context.FunctionAppDirectory))
-            {
-                Console.WriteLine(folder);
-            }
-
-            foreach (string file in Directory.GetFiles(context.FunctionAppDirectory))
-            {
-                Console.WriteLine(file);
-            }
 
             return svgURL == null
                 ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a url on the query string or in the request body")
