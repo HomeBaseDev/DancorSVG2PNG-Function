@@ -17,8 +17,9 @@ namespace DancorSVG2PNG
 {
     public static class DancorSVG2PNG
     {
-        [FunctionName("DancorSVG2PNG")]
-        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log, ExecutionContext context)
+        [FunctionName("MySVG2PNG")]
+        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, 
+            TraceWriter log, ExecutionContext context)
         {
             log.Info("C# HTTP trigger function processed a request.");
 
@@ -36,17 +37,32 @@ namespace DancorSVG2PNG
 
             // download file from URL
             var uniqueName = GenerateId() ;
-            
-            log.Info("-----------------------");
-            log.Info(uniqueName + ".svg");
-            log.Info($"{context.FunctionDirectory}");
-            log.Info("-----------------------");
+            try {
+                HttpWebRequest request =  (HttpWebRequest)HttpWebRequest.Create(svgURL);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream s = response.GetResponseStream();
+                FileStream os = new FileStream(uniqueName + ".svg", FileMode.OpenOrCreate, FileAccess.Write);
+                byte[] buff = new byte[102400];
+                int c = 0;
+                while ((c = s.Read(buff, 0, 10400)) > 0)
+                {
+                    os.Write(buff, 0, c);
+                    os.Flush();
+                }
+                os.Close();
+                s.Close();
 
-            using (var client = new WebClient())
-            {
-                client.DownloadFile(svgURL, uniqueName + ".svg" );
+
+                //using (var client = new WebClient())
+                //{
+                //    client.DownloadFile(svgURL, uniqueName + ".svg" );
+                //}
             }
-
+            catch (Exception e)
+            {
+                log.Info("Download Fail");
+                log.Info(e.Message);
+            }
 
             Process proc = new Process();
             try
@@ -115,7 +131,7 @@ namespace DancorSVG2PNG
 
             return svgURL == null
                 ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a url on the query string or in the request body")
-                : req.CreateResponse(HttpStatusCode.OK, "Hello " + svgURL);   
+                : req.CreateResponse(HttpStatusCode.OK, uniqueName);   
         }
 
         private static string GenerateId()
