@@ -11,7 +11,7 @@ using Microsoft.Azure.WebJobs.Host;
 using System.Diagnostics;
 using System;
 using System.IO;
-using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
 
 
 namespace DancorSVG2PNG
@@ -19,8 +19,8 @@ namespace DancorSVG2PNG
     public static class DancorSVG2PNG
     {
         [FunctionName("DancorSVG2PNG")]
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, 
-            TraceWriter log, ExecutionContext context)
+        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, 
+            "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log, ExecutionContext context)
         {
             log.Info("C# HTTP trigger function processed a request.");
 
@@ -49,7 +49,7 @@ namespace DancorSVG2PNG
             {
                 log.Info("Download Fail");
                 log.Info(e.Message);
-                return new BadRequestResult();
+                //return new BadRequestResult();
             }
             
             Process proc = new Process();
@@ -72,7 +72,7 @@ namespace DancorSVG2PNG
                 log.Info(e.Message);
                 // damn, no luck, better at least get rid of those images
                 cleanup(uniqueName);
-                return new BadRequestResult();
+                //return new BadRequestResult();
             }
 
             try
@@ -83,7 +83,11 @@ namespace DancorSVG2PNG
 
                 //cleanup(uniqueName);
 
-                return new FileContentResult(ImageToByteArray(imageIn), "image/png");
+                var result = new HttpResponseMessage(HttpStatusCode.OK);
+                result.Content = new ByteArrayContent(ImageToByteArray(imageIn));
+                result.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                
+                return result;
 
             }
             catch (Exception e)
@@ -91,10 +95,10 @@ namespace DancorSVG2PNG
                 log.Info("Image Upload Fail");
                 log.Info(e.Message);
                 cleanup(uniqueName);
-                return new BadRequestResult();
+                //return new BadRequestResult();
             }
 
-
+            return req.CreateResponse(HttpStatusCode.BadRequest, "Aww man, something went wrong!");
         }
 
         private static string GenerateId()
