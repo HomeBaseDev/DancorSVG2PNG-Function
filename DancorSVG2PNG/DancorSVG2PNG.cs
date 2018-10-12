@@ -11,6 +11,7 @@ using Microsoft.Azure.WebJobs.Host;
 using System.Diagnostics;
 using System;
 using System.IO;
+using Microsoft.AspNetCore.Mvc;
 
 
 namespace DancorSVG2PNG
@@ -18,13 +19,10 @@ namespace DancorSVG2PNG
     public static class DancorSVG2PNG
     {
         [FunctionName("DancorSVG2PNG")]
-        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, 
+        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, 
             TraceWriter log, ExecutionContext context)
         {
             log.Info("C# HTTP trigger function processed a request.");
-
-            log.Info(Environment.GetEnvironmentVariable("JAVA_HOME"));
-            log.Info("---------------------");
 
             // parse query parameter
             string svgURL = req.GetQueryNameValuePairs()
@@ -34,7 +32,7 @@ namespace DancorSVG2PNG
             if (svgURL == null)
             {
                 // Get request body
-                dynamic data = await req.Content.ReadAsAsync<object>();
+                dynamic data = req.Content.ReadAsAsync<object>();
                 svgURL = data?.svgURL;
             }
 
@@ -42,100 +40,61 @@ namespace DancorSVG2PNG
             var uniqueName = GenerateId() ;
             Directory.CreateDirectory(Path.GetTempPath() + "\\" + uniqueName);
             try {
-
-                foreach (string file in Directory.GetFiles(Path.GetTempPath() + uniqueName))
-                {
-                    log.Info("File in Directory After Download:");
-                    log.Info(file);
-                }
-
                 using (var client = new WebClient())
                 {
                     client.DownloadFile(svgURL, Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".svg");
-                }
-                foreach (string file in Directory.GetFiles(Path.GetTempPath() + uniqueName))
-                {
-                    log.Info("File in Directory After Download:");
-                    log.Info(file);
                 }
             }
             catch (Exception e)
             {
                 log.Info("Download Fail");
                 log.Info(e.Message);
+                return new BadRequestResult();
             }
             
-
-
             Process proc = new Process();
             try
             {
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.FileName = "D:\\Program Files (x86)\\Java\\jdk1.8.0_73\\bin\\java.exe";
+                proc.StartInfo.FileName = Environment.GetEnvironmentVariable("JAVA_HOME") + "java.exe";
                 proc.StartInfo.Arguments = "-jar " + context.FunctionAppDirectory + "\\Batik\\batik-rasterizer.jar -d " + Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".png " + Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".svg";
                 proc.Start();
                 proc.WaitForExit();
                 if (proc.HasExited)
                     log.Info(proc.StandardOutput.ReadToEnd());
-
                 log.Info("Batik Success!");
             }
             catch (Exception e)
             {
-
                 log.Info("Batik Fail");
                 log.Info(e.Message);
+                // damn, no luck, better at least get rid of those images
+                cleanup(uniqueName);
+                return new BadRequestResult();
             }
 
             try
             {
-                // upload file to blob storage
-                string storageConnection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-                CloudStorageAccount cloudStorageAccount = CloudStorageAccount.Parse(storageConnection);
-                CloudBlobClient cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
-                //create a container CloudBlobContainer 
-                CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference("svg2png");
-
                 log.Info(Path.GetTempPath() + uniqueName + ".png");
                 ////get Blob reference
                 Image imageIn = Image.FromFile(Path.GetTempPath() + uniqueName + "\\" +  uniqueName + ".png");
 
-                byte[] arr;
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
-                    arr = ms.ToArray();
-                }
+                //cleanup(uniqueName);
 
-
-                CloudBlockBlob svgBlob = cloudBlobContainer.GetBlockBlobReference(Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".png");
-                svgBlob.Properties.ContentType = "image/png";
-                svgBlob.UploadFromByteArray(arr, 0, arr.Length);
-
-                imageIn.Dispose();
-                log.Info("Image Upload Success!");
+                return new FileContentResult(ImageToByteArray(imageIn), "image/png");
 
             }
             catch (Exception e)
             {
                 log.Info("Image Upload Fail");
                 log.Info(e.Message);
+                cleanup(uniqueName);
+                return new BadRequestResult();
             }
 
-            // clean up
-            if (File.Exists(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".png"))
-                File.Delete(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".png");
-            if (File.Exists(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".svg"))
-                File.Delete(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".svg");
-            if (Directory.Exists(Path.GetTempPath() + "\\" + uniqueName))
-                Directory.Delete(Path.GetTempPath() + "\\" + uniqueName);
 
-
-            return svgURL == null
-                ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a url on the query string or in the request body")
-                : req.CreateResponse(HttpStatusCode.OK, uniqueName);   
         }
 
         private static string GenerateId()
@@ -147,6 +106,55 @@ namespace DancorSVG2PNG
             }
             return string.Format("{0:x}", i - DateTime.Now.Ticks);
         }
+
+        private static byte[] ImageToByteArray(Image image)
+        {
+            ImageConverter converter = new ImageConverter();
+            return (byte[])converter.ConvertTo(image, typeof(byte[]));
+        }
+
+        private static void cleanup(string uniqueName)
+        {
+            // clean up
+            if (File.Exists(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".png"))
+                File.Delete(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".png");
+            if (File.Exists(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".svg"))
+                File.Delete(Path.GetTempPath() + "\\" + uniqueName + "\\" + uniqueName + ".svg");
+            if (Directory.Exists(Path.GetTempPath() + "\\" + uniqueName))
+                Directory.Delete(Path.GetTempPath() + "\\" + uniqueName);
+        }
+
+        private static bool uploadImage(Image imageIn, string uniqueName)
+        {
+            try
+            {
+
+            // upload file to blob storage
+            string storageConnection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.Parse(storageConnection);
+            CloudBlobClient cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+            //create a container CloudBlobContainer 
+            CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference(Environment.GetEnvironmentVariable("AzureWebJobsContainer"));
+
+            byte[] arr;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                arr = ms.ToArray();
+            }
+
+            CloudBlockBlob svgBlob = cloudBlobContainer.GetBlockBlobReference(Path.GetTempPath() + uniqueName + "\\" + uniqueName + ".png");
+            svgBlob.Properties.ContentType = "image/png";
+            svgBlob.UploadFromByteArray(arr, 0, arr.Length);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
 
     }
 }
