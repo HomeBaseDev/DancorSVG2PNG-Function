@@ -23,7 +23,8 @@ namespace DancorSVG2PNG
         {
             log.Info("C# HTTP trigger function processed a request.");
 
-
+            log.Info(Environment.GetEnvironmentVariable("JAVA_HOME"));
+            log.Info("---------------------");
 
             // parse query parameter
             string svgURL = req.GetQueryNameValuePairs()
